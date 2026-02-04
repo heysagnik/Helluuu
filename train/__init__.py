@@ -10,9 +10,9 @@ from .augmentations import (
 )
 from .dataset import SatelliteDataset, TileDataset, create_dataloader
 from .india_dataset import (
-    BhuvanDataset, IndiaSatDataset, 
-    create_india_dataloader, download_bhuvan_sample,
-    BHUVAN_CLASSES, INDIA_CLASS_WEIGHTS
+    DubaiAerialDataset, LandCoverAIDataset,
+    create_satellite_dataloader, print_dataset_instructions,
+    SATELLITE_CLASSES, SATELLITE_CLASS_WEIGHTS
 )
 from .metrics import SegmentationMetrics, InferenceTimer
 from .trainer import Trainer, EMA, get_cosine_schedule_with_warmup
@@ -26,9 +26,9 @@ __all__ = [
     'RandomBrightnessContrast', 'Normalize', 'ToTensor', 'Compose',
     # Data - General
     'SatelliteDataset', 'TileDataset', 'create_dataloader',
-    # Data - India Specific
-    'BhuvanDataset', 'IndiaSatDataset', 'create_india_dataloader',
-    'download_bhuvan_sample', 'BHUVAN_CLASSES', 'INDIA_CLASS_WEIGHTS',
+    # Data - Satellite Datasets (verified available)
+    'DubaiAerialDataset', 'LandCoverAIDataset', 'create_satellite_dataloader',
+    'print_dataset_instructions', 'SATELLITE_CLASSES', 'SATELLITE_CLASS_WEIGHTS',
     # Metrics
     'SegmentationMetrics', 'InferenceTimer',
     # Training
