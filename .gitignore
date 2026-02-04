@@ -1,0 +1,46 @@
+# Dependency directories
+node_modules/
+jspm_packages/
+venv/
+.venv/
+env/
+.env
+
+# Build outputs
+dist/
+build/
+out/
+target/
+
+# IDEs and editors
+.vscode/
+.idea/
+*.swp
+*.swo
+.project
+.classpath
+.settings/
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Logs and databases
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.sqlite
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Testing
+coverage/
+.nyc_output/
