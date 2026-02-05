@@ -395,23 +395,62 @@ class CompoundLoss(nn.Module):
             
             for i, aux_pred in enumerate(aux_preds):
                 if i < len(aux_weights):
-                    aux_dice = self.dice_loss(aux_pred, target, self.class_weights)
-                    aux_focal = self.focal_loss(aux_pred, target)
+                    # Resize target to match aux prediction size
+                    aux_h, aux_w = aux_pred.shape[-2:]
+                    target_h, target_w = target.shape[-2:]
+                    
+                    if (aux_h != target_h) or (aux_w != target_w):
+                        aux_target = F.interpolate(
+                            target.unsqueeze(1).float(),
+                            size=(aux_h, aux_w),
+                            mode='nearest'
+                        ).squeeze(1).long()
+                    else:
+                        aux_target = target
+                    
+                    aux_dice = self.dice_loss(aux_pred, aux_target, self.class_weights)
+                    aux_focal = self.focal_loss(aux_pred, aux_target)
                     aux_loss += aux_weights[i] * (0.6 * aux_dice + 0.4 * aux_focal)
             
             losses['aux'] = aux_loss
             main_loss = main_loss + 0.4 * aux_loss
         
-        # BAAM boundary loss
+        # BAAM boundary loss (skip if boundary_pred is None or causes issues)
         if boundary_pred is not None:
-            from ..model.boundary import BoundaryLoss as BAAMBoundaryLoss
-            baam_loss = BAAMBoundaryLoss(self.num_classes)(boundary_pred, target)
+            # Simple boundary supervision using BCE
+            boundary_target = self._get_boundary_target(target)
+            if boundary_target.shape != boundary_pred.shape[-2:]:
+                boundary_target = F.interpolate(
+                    boundary_target.unsqueeze(1).float(),
+                    size=boundary_pred.shape[-2:],
+                    mode='nearest'
+                ).squeeze(1)
+            baam_loss = F.binary_cross_entropy_with_logits(
+                boundary_pred.squeeze(1), boundary_target.float()
+            )
             losses['baam_boundary'] = baam_loss
             main_loss = main_loss + 0.1 * baam_loss
         
         losses['total'] = main_loss
         
         return losses
+    
+    def _get_boundary_target(self, target: torch.Tensor) -> torch.Tensor:
+        """Extract boundary from target mask."""
+        # Use simple gradient-based boundary extraction
+        target_float = target.float().unsqueeze(1)
+        
+        # Sobel-like kernel for boundary
+        kernel = torch.tensor([
+            [-1, -1, -1],
+            [-1,  8, -1],
+            [-1, -1, -1]
+        ], dtype=torch.float32, device=target.device).view(1, 1, 3, 3)
+        
+        edges = F.conv2d(target_float, kernel, padding=1)
+        boundary = (edges.abs() > 0).float().squeeze(1)
+        
+        return boundary
 
 
 if __name__ == "__main__":

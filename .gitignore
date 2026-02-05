@@ -1,46 +1,50 @@
-# Dependency directories
-node_modules/
-jspm_packages/
-venv/
-.venv/
-env/
-.env
-
-# Build outputs
-dist/
-build/
-out/
-target/
-
-# IDEs and editors
-.vscode/
-.idea/
-*.swp
-*.swo
-.project
-.classpath
-.settings/
-
-# OS generated files
-.DS_Store
-.DS_Store?
-._*
-Thumbs.db
-ehthumbs.db
-Desktop.ini
-
-# Logs and databases
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-*.sqlite
-
 # Python
 __pycache__/
 *.py[cod]
 *$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
 
-# Testing
-coverage/
-.nyc_output/
+# Virtual Environment
+.env
+.venv
+env/
+venv/
+ENV/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Project specific
+outputs/
+data/
+wandb/
+.kaggle/
+kaggle.json
+
+# Models
+*.pth
+*.pt
+*.ckpt
+
+# Temporary
+temp/
+tmp/

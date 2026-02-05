@@ -105,6 +105,30 @@ class SatelliteDataset(Dataset):
         """Find all image-mask pairs."""
         samples = []
         
+        # Supported extensions
+        extensions = {'.png', '.jpg', '.jpeg', '.tif', '.tiff'}
+        
+        # Check for Tile subfolders (Dubai dataset structure)
+        tile_folders = list(self.root.glob("Tile*")) + list(self.root.glob("tile*"))
+        
+        if tile_folders:
+            print(f"Found {len(tile_folders)} tile folders")
+            for tile_dir in sorted(tile_folders):
+                img_dir = tile_dir / 'images'
+                mask_dir = tile_dir / 'masks'
+                
+                if img_dir.exists() and mask_dir.exists():
+                    for img_path in sorted(img_dir.iterdir()):
+                        if img_path.suffix.lower() in extensions:
+                            # Find corresponding mask
+                            for ext in extensions:
+                                mask_path = mask_dir / f"{img_path.stem}{ext}"
+                                if mask_path.exists():
+                                    samples.append((img_path, mask_path))
+                                    break
+            if samples:
+                return samples
+        
         # Look for standard directory structure
         image_dir = self.root / 'images'
         mask_dir = self.root / 'masks'
@@ -121,9 +145,6 @@ class SatelliteDataset(Dataset):
         
         if not image_dir.exists():
             return samples
-        
-        # Supported extensions
-        extensions = {'.png', '.jpg', '.jpeg', '.tif', '.tiff'}
         
         for img_path in sorted(image_dir.iterdir()):
             if img_path.suffix.lower() in extensions:
@@ -161,13 +182,37 @@ class SatelliteDataset(Dataset):
                 mask = src.read(1)
         elif HAS_PIL:
             mask = np.array(Image.open(path))
-            # Remove channel dimension if present
-            if mask.ndim == 3:
-                mask = mask[:, :, 0]
         else:
             raise ImportError("Either PIL or rasterio is required to load masks")
         
+        # Handle RGB masks (Dubai dataset uses color-coded masks)
+        if mask.ndim == 3 and mask.shape[2] >= 3:
+            mask = self._rgb_to_class(mask)
+        elif mask.ndim == 3:
+            mask = mask[:, :, 0]
+        
         return mask.astype(np.int64)
+    
+    def _rgb_to_class(self, rgb_mask: np.ndarray) -> np.ndarray:
+        """Convert RGB mask to class indices for Dubai dataset."""
+        # Dubai dataset color mapping (R, G, B) -> class
+        COLOR_TO_CLASS = {
+            (155, 155, 155): 0,  # Unlabeled -> background
+            (226, 169, 41): 0,   # Land -> background
+            (132, 41, 246): 1,   # Road -> roads
+            (110, 193, 228): 2,  # Water -> water
+            (60, 16, 152): 3,    # Vegetation -> trees
+            (254, 221, 58): 4,   # Building -> buildings
+        }
+        
+        h, w = rgb_mask.shape[:2]
+        class_mask = np.zeros((h, w), dtype=np.int64)
+        
+        for color, class_idx in COLOR_TO_CLASS.items():
+            matches = np.all(rgb_mask[:, :, :3] == color, axis=-1)
+            class_mask[matches] = class_idx
+        
+        return class_mask
     
     def _extract_tiles(
         self,
@@ -201,6 +246,12 @@ class SatelliteDataset(Dataset):
         # Apply transforms
         if self.transform is not None:
             image, mask = self.transform(image, mask)
+        
+        # Ensure mask values are in valid range [0, num_classes-1]
+        if isinstance(mask, torch.Tensor):
+            mask = mask.clamp(0, len(self.class_mapping) - 1)
+        else:
+            mask = np.clip(mask, 0, len(self.class_mapping) - 1)
         
         return image, mask
     
